@@ -10,17 +10,25 @@ $turnstileEnabled = $turnstileEnabledEnv === false
     );
 
 return [
+    // Hauptdatenbank für User-Zuordnung zu Buckets
+    'master_db_host' => 'db.novium.world',
+    'master_db_port' => 3306,
+    'master_db_name' => 's120_maxxcloud-old-test',
+    'master_db_user' => 'u120_BzrvYMKlDQ',
+    'master_db_pass' => 't0.^k2w4N3a0E^fzSXRO80=R',
+    
+    // Legacy-Kompatibilität (wird nicht mehr verwendet, aber für Fallback)
     'db_host' => 'db.novium.world',
     'db_port' => 3306,
     'db_name' => 's120_maxxcloud-old-test',
-    'db_user' => 'u120_wSZG0l2YR3',
-    'db_pass' => 'p^jcp!c48K4isHc.Tgh4bO2o',
+    'db_user' => 'u120_BzrvYMKlDQ',
+    'db_pass' => 't0.^k2w4N3a0E^fzSXRO80=R',
 
     'storage_db_host' => 'db.novium.world',
     'storage_db_port' => 3306,
     'storage_db_name' => 's120_maxxcloud-old-test',
-    'storage_db_user' => 'u120_hH9NtInsda',
-    'storage_db_pass' => 'WvYK7vE.@!Eo6U!AYAUBXCP2',
+    'storage_db_user' => 'u120_BzrvYMKlDQ',
+    'storage_db_pass' => 't0.^k2w4N3a0E^fzSXRO80=R',
 
     // Cloudflare Turnstile (Captcha)
     // TODO: trage hier deine echten Keys ein

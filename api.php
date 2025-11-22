@@ -82,20 +82,41 @@ function handle_status(): void
         ]);
     }
 
-    $user = fetch_user($userId);
-    $folders = fetch_folders($userId);
-    $files = fetch_files($userId);
-    $storage = calculate_storage_usage($userId);
+    try {
+        $user = fetch_user($userId);
+        
+        if (!$user) {
+            // User nicht gefunden oder kein Bucket zugeordnet
+            respond_json([
+                'user' => null,
+                'folders' => [],
+                'files' => [],
+                'storage' => ['bytes' => 0, 'megabytes' => 0],
+            ]);
+        }
+        
+        $folders = fetch_folders($userId);
+        $files = fetch_files($userId);
+        $storage = calculate_storage_usage($userId);
 
-    global $config;
-    $user['storage_limit'] = $config['default_storage_limit_mb'];
+        global $config;
+        $user['storage_limit'] = $config['default_storage_limit_mb'];
 
-    respond_json([
-        'user' => $user,
-        'folders' => $folders,
-        'files' => $files,
-        'storage' => $storage,
-    ]);
+        respond_json([
+            'user' => $user,
+            'folders' => $folders,
+            'files' => $files,
+            'storage' => $storage,
+        ]);
+    } catch (Exception $e) {
+        // Fehler beim Zugriff auf Bucket - gebe leere Daten zurück
+        respond_json([
+            'user' => null,
+            'folders' => [],
+            'files' => [],
+            'storage' => ['bytes' => 0, 'megabytes' => 0],
+        ]);
+    }
 }
 
 function handle_login(array $payload): void
@@ -112,16 +133,50 @@ function handle_login(array $payload): void
         respond_error('Captcha ungültig oder abgelaufen', 403);
     }
 
-    $stmt = db()->prepare('SELECT * FROM users WHERE email = :email');
-    $stmt->execute(['email' => $email]);
-    $user = $stmt->fetch();
-
-    if (!$user || !password_verify($password, $user['password_hash'])) {
-        respond_error('Login fehlgeschlagen', 401);
+    // Suche User in allen Buckets
+    global $buckets;
+    $user = null;
+    $foundBucket = null;
+    
+    foreach (array_keys($buckets) as $bucketName) {
+        try {
+            $db = get_bucket_db($bucketName);
+            $stmt = $db->prepare('SELECT * FROM users WHERE email = :email');
+            $stmt->execute(['email' => $email]);
+            $candidate = $stmt->fetch();
+            
+            if ($candidate && password_verify($password, $candidate['password_hash'])) {
+                $user = $candidate;
+                $foundBucket = $bucketName;
+                break;
+            }
+        } catch (Exception $e) {
+            // Bucket nicht erreichbar, weiter zum nächsten
+            continue;
+        }
     }
 
+    if (!$user) {
+        respond_error('Login fehlgeschlagen', 401);
+    }
+    
+    $userId = (int) $user['id'];
+    $bucketName = $user['bucket_id'] ?: $foundBucket;
+    
+    // Aktualisiere bucket_id im Bucket, falls noch nicht gesetzt
+    if (empty($user['bucket_id'])) {
+        $db = get_bucket_db($foundBucket);
+        $stmt = $db->prepare('UPDATE users SET bucket_id = :bucket_id WHERE id = :id');
+        $stmt->execute(['bucket_id' => $foundBucket, 'id' => $userId]);
+    }
+    
+    // Speichere Zuordnung in der Hauptdatenbank
+    assign_user_to_bucket($userId, $bucketName);
+    
+    // Speichere bucket_id in Session für schnellen Zugriff
     session_regenerate_id(true);
-    $_SESSION['user_id'] = (int) $user['id'];
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['user_bucket_id'] = $bucketName;
     respond_json(['success' => true]);
 }
 
@@ -143,33 +198,53 @@ function handle_register(array $payload): void
         respond_error('Captcha ungültig oder abgelaufen', 403);
     }
 
-    $pdo = db();
-
-    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email');
-    $stmt->execute(['email' => $email]);
-    if ($stmt->fetch()) {
-        respond_error('Email bereits registriert', 409);
+    // Prüfe, ob Email bereits in einem Bucket existiert
+    global $buckets;
+    foreach (array_keys($buckets) as $bucketName) {
+        try {
+            $db = get_bucket_db($bucketName);
+            $stmt = $db->prepare('SELECT id FROM users WHERE email = :email');
+            $stmt->execute(['email' => $email]);
+            if ($stmt->fetch()) {
+                respond_error('Email bereits registriert', 409);
+            }
+        } catch (Exception $e) {
+            // Bucket nicht erreichbar, weiter zum nächsten
+            continue;
+        }
     }
+
+    // Wähle den am wenigsten ausgelasteten Bucket
+    $selectedBucket = get_least_loaded_bucket();
+    $pdo = get_bucket_db($selectedBucket);
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $displayName = explode('@', $email)[0];
-    $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, display_name) VALUES (:email, :hash, :display)');
-    $stmt->execute(['email' => $email, 'hash' => $hash, 'display' => $displayName]);
+    $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, display_name, bucket_id) VALUES (:email, :hash, :display, :bucket_id)');
+    $stmt->execute([
+        'email' => $email,
+        'hash' => $hash,
+        'display' => $displayName,
+        'bucket_id' => $selectedBucket
+    ]);
     $userId = (int) $pdo->lastInsertId();
+
+    // Speichere Zuordnung in der Hauptdatenbank
+    assign_user_to_bucket($userId, $selectedBucket);
 
     storage_path($userId); // ensure folder exists
 
     session_regenerate_id(true);
     $_SESSION['user_id'] = $userId;
+    $_SESSION['user_bucket_id'] = $selectedBucket;
     respond_json(['success' => true, 'user_id' => $userId]);
 }
 
 function handle_logout(): void
 {
-    session_destroy();
-    session_start();
+    unset($_SESSION['user_id']);
+    unset($_SESSION['user_bucket_id']);
     session_regenerate_id(true);
-    $_SESSION = [];
     respond_json(['success' => true]);
 }
 
