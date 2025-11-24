@@ -28,15 +28,17 @@ return [
     'Bucket-1' => [
         'host' => 'db.novium.world',
         'port' => 3306,
-        'db_name' => 's120_maxxcloud-old-test',
+        'db_name' => 's120_Bucket-1',
         'user' => 'u120_2Y9MEq18EI',
         'pass' => '.@91^EMm^G1y!3BF9FoYYsiR',
         // Storage verwendet dieselben Credentials wie die Hauptdatenbank
         'storage_host' => 'db.novium.world',
         'storage_port' => 3306,
-        'storage_db_name' => 's120_maxxcloud-old-test',
+        'storage_db_name' => 's120_Bucket-1',
         'storage_user' => 'u120_2Y9MEq18EI',
         'storage_pass' => '.@91^EMm^G1y!3BF9FoYYsiR',
     ],
+
+
 ];
 

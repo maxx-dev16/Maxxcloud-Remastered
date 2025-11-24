@@ -11,24 +11,25 @@ $turnstileEnabled = $turnstileEnabledEnv === false
 
 return [
     // Hauptdatenbank für User-Zuordnung zu Buckets
+    // Verwendet die gleichen Credentials wie Bucket-1 (Main Bucket)
     'master_db_host' => 'db.novium.world',
     'master_db_port' => 3306,
-    'master_db_name' => 's120_maxxcloud-old-test',
-    'master_db_user' => 'u120_BzrvYMKlDQ',
-    'master_db_pass' => 't0.^k2w4N3a0E^fzSXRO80=R',
+    'master_db_name' => 's120_Bucket-1', // Gleiche DB wie Bucket-1
+    'master_db_user' => 'u120_2Y9MEq18EI',
+    'master_db_pass' => '.@91^EMm^G1y!3BF9FoYYsiR',
     
     // Legacy-Kompatibilität (wird nicht mehr verwendet, aber für Fallback)
     'db_host' => 'db.novium.world',
     'db_port' => 3306,
-    'db_name' => 's120_maxxcloud-old-test',
-    'db_user' => 'u120_BzrvYMKlDQ',
-    'db_pass' => 't0.^k2w4N3a0E^fzSXRO80=R',
+    'db_name' => 's120_Bucket-1',
+    'db_user' => 'u120_2Y9MEq18EI',
+    'db_pass' => '.@91^EMm^G1y!3BF9FoYYsiR',
 
     'storage_db_host' => 'db.novium.world',
     'storage_db_port' => 3306,
-    'storage_db_name' => 's120_maxxcloud-old-test',
-    'storage_db_user' => 'u120_BzrvYMKlDQ',
-    'storage_db_pass' => 't0.^k2w4N3a0E^fzSXRO80=R',
+    'storage_db_name' => 's120_Bucket-1',
+    'storage_db_user' => 'u120_2Y9MEq18EI',
+    'storage_db_pass' => '.@91^EMm^G1y!3BF9FoYYsiR',
 
     // Cloudflare Turnstile (Captcha)
     // TODO: trage hier deine echten Keys ein
@@ -49,6 +50,9 @@ return [
     // Dateipfade
     'storage_path' => __DIR__ . DIRECTORY_SEPARATOR . 'storage',
     'default_storage_limit_mb' => 5120,
+    'base_url' => getenv('APP_BASE_URL') ?: 'https://maxxcloud.it',
+    'mail_from' => getenv('MAIL_FROM') ?: 'no-reply@maxxcloud.it',
+    'mail_sender' => getenv('MAIL_SENDER') ?: 'Maxxcloud',
 ];
 
 

@@ -392,7 +392,7 @@ $turnstileEnabled = !empty($config['turnstile_enabled']);
         }
         await api('register', payload);
         
-        showSuccess('Registrierung erfolgreich! Du wirst weitergeleitet...');
+        showSuccess('Registrierung erfolgreich! Bitte bestätige deine Email – wir haben dir eine Nachricht geschickt. Du wirst weitergeleitet...');
         
         // Nach erfolgreicher Registrierung zum Login weiterleiten
         setTimeout(() => {

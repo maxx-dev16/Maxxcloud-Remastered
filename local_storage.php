@@ -15,11 +15,25 @@ class LocalFileStorage
         }
 
         $userStoragePath = storage_path($userId);
+        
+        // Stelle sicher, dass das Verzeichnis existiert und Schreibrechte hat
+        if (!is_dir($userStoragePath)) {
+            if (!mkdir($userStoragePath, 0775, true)) {
+                throw new Exception("Speicher-Verzeichnis konnte nicht erstellt werden: {$userStoragePath}");
+            }
+        }
+        
+        if (!is_writable($userStoragePath)) {
+            throw new Exception("Speicher-Verzeichnis ist nicht beschreibbar: {$userStoragePath}");
+        }
+        
         $fileName = $this->generateFileName($fileId);
         $targetPath = $userStoragePath . DIRECTORY_SEPARATOR . $fileName;
 
         if (!copy($localPath, $targetPath)) {
-            throw new Exception("Datei konnte nicht in Speicher kopiert werden: {$localPath} -> {$targetPath}");
+            $error = error_get_last();
+            $errorMsg = $error ? $error['message'] : 'Unbekannter Fehler';
+            throw new Exception("Datei konnte nicht in Speicher kopiert werden: {$localPath} -> {$targetPath} ({$errorMsg})");
         }
 
         return true;
